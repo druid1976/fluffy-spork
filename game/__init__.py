@@ -1,0 +1,135 @@
+import pygame
+import sys
+import random
+
+WIDTH, HEIGHT = 800, 600
+BLACK = (0, 0, 0)
+RED = (255, 0, 0)
+BROWN = (139, 69, 19)  # Brown color
+
+class Player:
+    def __init__(self, x, y, image_path, screen):
+        self.image = pygame.image.load(image_path).convert_alpha()  # Load image
+        self.rect = self.image.get_rect()
+        self.rect.center = (x, y)
+        self.speed = 5
+        self.jump_power = 2  # Increased jump power
+        self.gravity = 0.02  # Increased gravity acceleration
+        self.velocity_y = 0
+        self.is_on_ground = False  # Flag to track if the player is on the ground
+
+    def move_left(self):
+        self.rect.x -= self.speed
+
+    def move_right(self):
+        self.rect.x += self.speed
+
+    def jump(self):
+        if self.is_on_ground:  # Check if the player is on the ground
+            self.velocity_y = -self.jump_power
+            self.is_on_ground = False  # Update flag to indicate the player is jumping
+
+    def apply_gravity(self):
+        self.velocity_y += self.gravity  # Apply gravity to vertical velocity
+        self.rect.y += self.velocity_y
+
+        # Check if the player is on the ground
+        for platform in platforms:
+            if self.rect.colliderect(platform.rect) and self.velocity_y >= 0:
+                self.rect.bottom = platform.rect.top  # Move the player's rect to sit on top of the platform
+                self.velocity_y = 0  # Stop vertical movement
+                self.is_on_ground = True  # Update flag to indicate the player is on the ground
+                break  # Exit the loop once a platform is found
+
+    def draw(self, screen):
+        screen.blit(self.image, self.rect)
+
+class Platform:
+    def __init__(self, x, y, width, height):
+        self.rect = pygame.Rect(x, y, width, height)
+
+# Initialize Pygame
+clock = pygame.time.Clock()
+pygame.init()
+
+# Set up the screen
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Platformer with Gravity")
+
+# Load background image
+background_image = pygame.image.load("images\Old Dungeon\OldDungeon.png").convert()
+background_image = pygame.transform.scale(background_image, (WIDTH, HEIGHT))
+
+# Font for the "You died" message
+font = pygame.font.Font(None, 36)
+
+# Create platforms
+platforms = [
+    Platform(200, 500, 400, 20),
+    Platform(100, 400, 200, 20),
+    Platform(500, 300, 200, 20),
+    # Additional platforms
+    Platform(100, 200, 200, 20),
+    Platform(500, 100, 300, 20),
+    Platform(200, 50, 150, 20),
+]
+
+# Randomly select a platform for player spawn
+selected_platform = random.choice(platforms)
+player_spawn_x = random.randint(selected_platform.rect.left, selected_platform.rect.right)
+player_spawn_y = selected_platform.rect.top
+
+# Create player instance
+player = Player(player_spawn_x, player_spawn_y, "images\Individual-Sprites\\adventurer-swrd-drw-01.png", screen)  # Change to your image file
+
+# Main game loop
+running = True
+while running:
+    # Handle events
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:  # Check for space key press event
+            player.jump()
+
+    # Movement controls
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_a]:
+        player.move_left()
+    if keys[pygame.K_d]:
+        player.move_right()
+
+    # Apply gravity
+    player.apply_gravity()
+
+    # Check if player fell out of screen
+    if player.rect.top > HEIGHT:
+        # Display "You died" message
+        screen.fill(BLACK)
+        text = font.render("You died", True, RED)
+        text_rect = text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+        screen.blit(text, text_rect)
+        pygame.display.flip()
+
+        # Wait for any key press to exit the game
+        waiting = True
+        while waiting:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                    waiting = False
+                elif event.type == pygame.KEYDOWN:
+                    waiting = False
+
+    # Draw everything
+    screen.blit(background_image, (0, 0))
+    for platform in platforms:
+        pygame.draw.rect(screen, BROWN, platform.rect)  # Draw brown platforms
+    player.draw(screen)
+
+    # Update the display
+    pygame.display.flip()
+    clock.tick(60)
+
+pygame.quit()
+sys.exit()
