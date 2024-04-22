@@ -7,6 +7,31 @@ BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 BROWN = (139, 69, 19)  # Brown color
 
+egg_obstacle_images = [
+    "game/images/obstacles/egg/skeleton-animation_00.png",
+    "game/images/obstacles/egg/skeleton-animation_01.png"
+]
+
+mob_ghost_images = [
+    "game\images\obstacles\ghost\skeleton-animation_00.png",
+    "game\images\obstacles\ghost\skeleton-animation_01.png"
+]
+
+class Obstacle:
+    def __init__(self, x, y, image_path):
+        self.original_image = pygame.image.load(image_path).convert_alpha()  # Load image
+        self.original_rect = self.original_image.get_rect()
+        self.original_rect.center = (x, y)
+        
+        # Scale down the image
+        scale_factor = 0.09  # Adjust this scaling factor to make the obstacles smaller (0.5 means half size)
+        self.image = pygame.transform.scale(self.original_image, (int(self.original_rect.width * scale_factor), int(self.original_rect.height * scale_factor)))
+        self.rect = self.image.get_rect()
+        self.rect.center = self.original_rect.center
+
+
+
+
 class Player:
     def __init__(self, x, y, image_path, screen):
         self.image = pygame.image.load(image_path).convert_alpha()  # Load image
@@ -57,7 +82,7 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Platformer with Gravity")
 
 # Load background image
-background_image = pygame.image.load("images\Old Dungeon\OldDungeon.png").convert()
+background_image = pygame.image.load("game\images\Old-Dungeon\OldDungeon.png").convert()
 background_image = pygame.transform.scale(background_image, (WIDTH, HEIGHT))
 
 # Font for the "You died" message
@@ -80,7 +105,10 @@ player_spawn_x = random.randint(selected_platform.rect.left, selected_platform.r
 player_spawn_y = selected_platform.rect.top
 
 # Create player instance
-player = Player(player_spawn_x, player_spawn_y, "images\Individual-Sprites\\adventurer-swrd-drw-01.png", screen)  # Change to your image file
+player = Player(player_spawn_x, player_spawn_y, "game\images\\Individual-Sprites\\adventurer-swrd-drw-01.png", screen)  # Change to your image file
+
+# Create obstacles
+obstacles = []
 
 # Main game loop
 running = True
@@ -102,8 +130,33 @@ while running:
     # Apply gravity
     player.apply_gravity()
 
+    # Check collision between player and obstacles
+    for obstacle in obstacles:
+        if player.rect.colliderect(obstacle.rect):
+            # Player collided with an obstacle
+            # Display "You died" message
+            screen.fill(BLACK)
+            text = font.render("You died", True, RED)
+            text_rect = text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+            screen.blit(text, text_rect)
+            pygame.display.flip()
+
+            # Wait for any key press to exit the game
+            waiting = True
+            while waiting:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        running = False
+                        waiting = False
+                    elif event.type == pygame.KEYDOWN:
+                        waiting = False
+            # Exit the game loop
+            running = False
+            break  # Break out of the obstacle loop
+
     # Check if player fell out of screen
     if player.rect.top > HEIGHT:
+        # Player fell out of screen
         # Display "You died" message
         screen.fill(BLACK)
         text = font.render("You died", True, RED)
@@ -120,11 +173,29 @@ while running:
                     waiting = False
                 elif event.type == pygame.KEYDOWN:
                     waiting = False
+        # Exit the game loop
+        running = False
 
-    # Draw everything
+    # Drawigng part
+    
     screen.blit(background_image, (0, 0))
     for platform in platforms:
         pygame.draw.rect(screen, BROWN, platform.rect)  # Draw brown platforms
+
+    # Create obstacles on platforms max 5
+    if len(obstacles) < 5:
+        for platform in platforms:
+            if random.randint(0, 100) < 5:  # Adjust the probability of obstacle appearance as needed
+                obstacle_x = random.randint(platform.rect.left, platform.rect.right)
+                obstacle_y = platform.rect.top - 30  # Adjust the vertical position of the obstacles
+                obstacle_image_path = random.choice(egg_obstacle_images)
+                obstacles.append(Obstacle(obstacle_x, obstacle_y, obstacle_image_path))
+
+    # Draw obstacles
+    for obstacle in obstacles:
+        screen.blit(obstacle.image, obstacle.rect)
+
+    # Draw player
     player.draw(screen)
 
     # Update the display
