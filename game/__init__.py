@@ -36,7 +36,7 @@ class Player:
     def __init__(self, x, y, image_path, screen):
         self.image = pygame.image.load(image_path).convert_alpha()  # Load image
         self.rect = self.image.get_rect()
-        self.rect.center = (x, y)
+        self.rect.topleft = (x, y)
         self.speed = 5
         self.jump_power = 2  # Increased jump power
         self.gravity = 0.02  # Increased gravity acceleration
